@@ -69,3 +69,7 @@ async def find_adoption_centers(request: LocationRequest):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/")
+async def root():
+    return {"message": "DDPC Dog Adoption Finder Agent is running"}
