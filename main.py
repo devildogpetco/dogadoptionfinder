@@ -18,7 +18,7 @@ app.add_middleware(
 
 # Initialize Gemini client
 client = genai.Client(
-    api_key="AIzaSyBX3-KjKO0oK_XcnFkTqvWAS6CddKwz7ek"  # Hardcoded for now
+    api_key="AIzaSyA1sXV36RyvgKxooP1HIsb-OQU4htxVnnw"  # Hardcoded for now
 )
 
 model = "gemini-2.0-flash-exp"  # Using stable model without thinking
