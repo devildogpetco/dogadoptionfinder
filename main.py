@@ -1,23 +1,27 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import google.generativeai as genai
 import os
 import json
 from typing import List, Optional
+from google import genai
+from google.genai import types
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # We'll restrict this later
+    allow_origins=["*"],
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
 
-# Configure Gemini
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Initialize Gemini client
+client = genai.Client(
+    api_key="AIzaSyBX3-KjKO0oK_XcnFkTqvWAS6CddKwz7ek"  # Hardcoded for now
+)
+
+model = "gemini-2.0-flash-exp"  # Using stable model without thinking
 
 class LocationRequest(BaseModel):
     location: str
@@ -25,42 +29,73 @@ class LocationRequest(BaseModel):
 @app.post("/api/find-adoption-centers")
 async def find_adoption_centers(request: LocationRequest):
     try:
-        prompt = f"""
-        Find dog adoption centers near {request.location}. Return EXACTLY this JSON format with 10 results:
+        # Simple prompt for JSON only
+        prompt = f"""Find dog adoption centers near {request.location}. 
+
+Return ONLY a JSON object in this exact format with 10 real adoption centers:
+{{
+    "centers": [
         {{
-            "centers": [
-                {{
-                    "rank": 1,
-                    "name": "Center Name",
-                    "address": "Full address",
-                    "phone": "Phone number",
-                    "website": "Website URL",
-                    "hours": "Mon-Fri 9-5",
-                    "distance": "2 miles",
-                    "notes": "Adoption fees start at $50"
-                }}
-            ]
+            "rank": 1,
+            "name": "Actual Center Name",
+            "address": "Full street address",
+            "phone": "(xxx) xxx-xxxx",
+            "website": "https://website.com",
+            "hours": "Mon-Fri 9AM-5PM",
+            "distance": "X miles",
+            "notes": "Adoption fees, special requirements, etc"
         }}
-        Only return valid JSON, no other text.
-        """
+    ]
+}}
+
+Important: Return ONLY the JSON object, no other text or markdown."""
         
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.3,  # Lower temperature for more consistent formatting
+                response_mime_type="application/json"  # Request JSON response
+            )
+        )
+        
+        # Get the text response
         text = response.text.strip()
         
-        # Clean up response
-        if "```json" in text:
-            text = text.split("```json")[1].split("```")[0]
-        elif "```" in text:
-            text = text.split("```")[1].split("```")[0]
+        # Parse JSON directly
+        try:
+            # First try direct parsing
+            data = json.loads(text)
+        except:
+            # If that fails, try to extract JSON from markdown
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].split("```")[0].strip()
             
-        data = json.loads(text)
+            # Try parsing again
+            data = json.loads(text)
         
-        return {
-            "success": True,
-            "data": data['centers']
-        }
+        # Validate we have centers
+        if 'centers' in data and len(data['centers']) > 0:
+            return {
+                "success": True,
+                "data": data['centers']
+            }
+        else:
+            return {
+                "success": False,
+                "error": "No adoption centers found in response"
+            }
             
+    except json.JSONDecodeError as e:
+        print(f"JSON Parse Error: {str(e)}")
+        return {
+            "success": False,
+            "error": "Invalid response format from AI"
+        }
     except Exception as e:
+        print(f"Error: {str(e)}")
         return {
             "success": False,
             "error": "Unable to find adoption centers. Please try again."
