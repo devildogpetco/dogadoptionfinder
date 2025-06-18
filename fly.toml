@@ -1,4 +1,3 @@
-toml
 app = "dogadoptionfinder"
 primary_region = "ord"
 kill_signal = "SIGINT"
