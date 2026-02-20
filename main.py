@@ -21,7 +21,7 @@ client = genai.Client(
     api_key=os.environ["GEMINI_API_KEY"]
 )
 
-odel = "gemini-2.0-flash"  # Using stable model without thinking
+model = "gemini-2.0-flash"  # Using stable model without thinking
 
 class LocationRequest(BaseModel):
     location: str
