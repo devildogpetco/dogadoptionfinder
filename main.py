@@ -4,7 +4,6 @@ from pydantic import BaseModel
 import os
 import json
 from google import genai
-from google.genai import types
 
 app = FastAPI()
 
@@ -15,12 +14,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# This is the "Magic Fix": It forces the connection to 'v1' (Stable) 
-# instead of 'v1beta' (Experimental)
-client = genai.Client(
-    api_key=os.environ["GEMINI_API_KEY"],
-    http_options=types.HttpOptions(api_version='v1')
-)
+# Using the most stable 2026 connection
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 class LocationRequest(BaseModel):
     location: str
@@ -30,12 +25,13 @@ async def find_adoption_centers(request: LocationRequest):
     try:
         prompt = f"Find 10 real dog adoption centers near {request.location}. Return ONLY a JSON object with a list called 'centers' containing name, address, phone, website, hours, distance, and notes."
         
+        # We call the model directly by name
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model="gemini-1.5-flash",
             contents=prompt
         )
         
-        # Clean the text in case the AI adds formatting
+        # Clean up the response to ensure it's valid JSON
         result_text = response.text.strip()
         if result_text.startswith("```json"):
             result_text = result_text.split("```json")[1].split("```")[0].strip()
@@ -48,4 +44,4 @@ async def find_adoption_centers(request: LocationRequest):
 
 @app.get("/")
 async def root():
-    return {"message": "Dog Finder - Stable v1 Connection Online"}
+    return {"message": "System Online - Final Stable Build"}
