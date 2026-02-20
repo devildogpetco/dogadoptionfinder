@@ -14,8 +14,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Using the most stable 2026 connection
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+# This forces the stable production 'v1' line and bypasses the Beta error
+client = genai.Client(
+    api_key=os.environ["GEMINI_API_KEY"],
+    http_options={'api_version': 'v1'}
+)
 
 class LocationRequest(BaseModel):
     location: str
@@ -25,23 +28,22 @@ async def find_adoption_centers(request: LocationRequest):
     try:
         prompt = f"Find 10 real dog adoption centers near {request.location}. Return ONLY a JSON object with a list called 'centers' containing name, address, phone, website, hours, distance, and notes."
         
-        # We call the model directly by name
+        # We are using the most stable model name possible
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model='gemini-1.5-flash',
             contents=prompt
         )
         
-        # Clean up the response to ensure it's valid JSON
-        result_text = response.text.strip()
-        if result_text.startswith("```json"):
-            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        # This cleanup step makes sure the website can actually read the data
+        text = response.text.strip()
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0].strip()
         
-        data = json.loads(result_text)
-        return {"success": True, "data": data.get('centers', [])}
+        return {"success": True, "data": json.loads(text).get('centers', [])}
             
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 @app.get("/")
 async def root():
-    return {"message": "System Online - Final Stable Build"}
+    return {"message": "NUCLEAR RESET - STABLE V1"}
