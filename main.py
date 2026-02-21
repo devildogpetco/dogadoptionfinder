@@ -39,4 +39,4 @@ async def find_adoption_centers(request: LocationRequest):
 
 @app.get("/")
 async def root():
-    return {"message": "System Online - Updated Build"}
+    return {"message": "System Online"}
