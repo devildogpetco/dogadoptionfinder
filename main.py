@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 import json
-from google import genai
+import google.generativeai as genai
 
 app = FastAPI()
 
@@ -14,11 +14,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# This forces the stable production 'v1' line and bypasses the Beta error
-client = genai.Client(
-    api_key=os.environ["GEMINI_API_KEY"],
-    http_options={'api_version': 'v1'}
-)
+# Configure the most stable Production library
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+# This model ID is the 'Long Term Support' version
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
 
 class LocationRequest(BaseModel):
     location: str
@@ -28,22 +28,20 @@ async def find_adoption_centers(request: LocationRequest):
     try:
         prompt = f"Find 10 real dog adoption centers near {request.location}. Return ONLY a JSON object with a list called 'centers' containing name, address, phone, website, hours, distance, and notes."
         
-        # We are using the most stable model name possible
-        response = client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents=prompt
+        # Call the stable v1 API
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                response_mime_type="application/json",
+            )
         )
         
-        # This cleanup step makes sure the website can actually read the data
-        text = response.text.strip()
-        if "```json" in text:
-            text = text.split("```json")[1].split("```")[0].strip()
-        
-        return {"success": True, "data": json.loads(text).get('centers', [])}
+        data = json.loads(response.text.strip())
+        return {"success": True, "data": data.get('centers', [])}
             
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 @app.get("/")
 async def root():
-    return {"message": "NUCLEAR RESET - STABLE V1"}
+    return {"message": "System Online - LTS Build"}
