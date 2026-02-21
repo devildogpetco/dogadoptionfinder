@@ -18,7 +18,7 @@ app.add_middleware(
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 # This model ID is the 'Long Term Support' version
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 class LocationRequest(BaseModel):
     location: str
