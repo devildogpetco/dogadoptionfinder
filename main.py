@@ -3,10 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 import json
-import google.generativeai as genai
+from google import genai
 
 app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,11 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure the most stable Production library
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-
-# This model ID is the 'Long Term Support' version
-model = genai.GenerativeModel('gemini-2.0-flash')
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 class LocationRequest(BaseModel):
     location: str
@@ -27,21 +22,48 @@ class LocationRequest(BaseModel):
 async def find_adoption_centers(request: LocationRequest):
     try:
         prompt = f"Find 10 real dog adoption centers near {request.location}. Return ONLY a JSON object with a list called 'centers' containing name, address, phone, website, hours, distance, and notes."
-        
-        # Call the stable v1 API
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                response_mime_type="application/json",
-            )
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+            }
         )
-        
+
         data = json.loads(response.text.strip())
         return {"success": True, "data": data.get('centers', [])}
-            
+
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 @app.get("/")
 async def root():
-    return {"message": "System Online - LTS Build"}
+    return {"message": "System Online - Updated Build"}
+```
+
+Save the file.
+
+---
+
+**Step 2: Edit `requirements.txt`**
+
+Open `requirements.txt` and replace the contents with:
+```
+fastapi
+uvicorn
+pydantic
+google-genai
+```
+
+Notice: `google-generativeai` changed to `google-genai` — this is the new, supported package.
+
+Save the file.
+
+---
+
+**Step 3: Redeploy**
+
+Go back to your Terminal, make sure you're in the project folder, and run:
+```
+fly deploy
