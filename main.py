@@ -40,30 +40,3 @@ async def find_adoption_centers(request: LocationRequest):
 @app.get("/")
 async def root():
     return {"message": "System Online - Updated Build"}
-```
-
-Save the file.
-
----
-
-**Step 2: Edit `requirements.txt`**
-
-Open `requirements.txt` and replace the contents with:
-```
-fastapi
-uvicorn
-pydantic
-google-genai
-```
-
-Notice: `google-generativeai` changed to `google-genai` — this is the new, supported package.
-
-Save the file.
-
----
-
-**Step 3: Redeploy**
-
-Go back to your Terminal, make sure you're in the project folder, and run:
-```
-fly deploy
